@@ -1,6 +1,5 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import {
-  Camera as CameraIcon,
   FilePlus2 as FilePlusIcon,
   ImagePlus as ImagePlusIcon,
   type LucideIcon,
@@ -9,14 +8,12 @@ import {
 } from 'lucide-react';
 import { useMessages } from '@myelin/editor/i18n';
 import { getInsertHotkey } from '@myelin/editor/tools/tool-keybinds';
-import { MOBILE_PLATFORM } from '@/lib/env';
 
 interface InsertPopoverProps {
   onInsertFrame: () => void;
   onInsertEmbed: () => void;
   onInsertLatex: () => void;
   onInsertAudio: () => void;
-  onInsertCamera: () => void;
   onClose: () => void;
 }
 
@@ -36,7 +33,6 @@ export function InsertPopover({
   onInsertEmbed,
   onInsertLatex,
   onInsertAudio,
-  onInsertCamera,
   onClose,
 }: InsertPopoverProps) {
   const strings = useMessages();
@@ -92,19 +88,6 @@ export function InsertPopover({
       hotkey: getInsertHotkey('embed'),
       onSelect: onInsertEmbed,
     },
-    // Desktop webviews ignore `capture` and just open a file picker.
-    ...(MOBILE_PLATFORM !== null
-      ? [
-          {
-            key: 'camera',
-            icon: CameraIcon,
-            label: strings.canvas.insert.camera.label,
-            description: strings.canvas.insert.camera.description,
-            hotkey: '',
-            onSelect: onInsertCamera,
-          },
-        ]
-      : []),
     {
       key: 'latex',
       icon: SigmaIcon,

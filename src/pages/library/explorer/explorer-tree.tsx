@@ -15,6 +15,7 @@ import { cn } from '@myelin/editor/utils';
 import { Logger } from '@myelin/shared/logger';
 import { Button } from '@myelin/ui/button';
 import { VirtualGrid } from '@/components/virtual-grid';
+import { createBlankCanvasFile } from '@/lib/note/create';
 import {
   type FileType,
   isRepositoryConfigStructurallyComplete,
@@ -237,7 +238,10 @@ export function ExplorerTree({
   const startNewFile = useCallback(
     async (title: string, type: FileType) => {
       const name = await repository.getUniqueFileName(title, currentFolderId);
-      const id = await repository.createFile(name, type, currentFolderId);
+      const id =
+        type === 'mcanvas'
+          ? await createBlankCanvasFile(repository, name, currentFolderId)
+          : await repository.createFile(name, type, currentFolderId);
       loadRequestRef.current++;
       setRenamingNewId(id);
       const now = Date.now();

@@ -247,6 +247,13 @@ const es: typeof en = {
       selectedCount: (count: number) => `${count} elementos`,
     },
     itemMenu: {
+      moveTo: 'Mover a…',
+      moveHere: 'Mover aquí',
+      workspace: 'Espacio de trabajo',
+      back: 'Atrás',
+      loadError: 'No se pudieron cargar las carpetas.',
+      moveError: 'No se pudieron mover los elementos.',
+
       rename: 'Renombrar',
       manageTags: 'Administrar etiquetas',
       color: 'Color',
@@ -810,10 +817,6 @@ const es: typeof en = {
       embed: {
         label: 'Imagen o PDF',
         description: 'Arrastra archivos o pega una URL',
-      },
-      camera: {
-        label: 'Tomar una foto',
-        description: 'Captura una imagen con la cámara',
       },
       latex: {
         label: 'LaTeX',

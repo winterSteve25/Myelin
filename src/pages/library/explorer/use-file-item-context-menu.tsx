@@ -3,6 +3,7 @@ import { VersionHistoryDialog } from '@/components/version-history-dialog';
 import type { VFSFileNode } from '@/lib/sync';
 import { TagManageDialog } from '../tag-manage-dialog';
 import { ItemContextMenu } from './item-context-menu';
+import { MoveItemDialog } from './move-item-dialog';
 import { RenameReferencesDialog } from './rename-references-dialog';
 import { useExplorerItem } from './use-explorer-item';
 
@@ -20,6 +21,7 @@ export function useFileItemContextMenu(
   onChanged: () => void | Promise<void>,
   options?: { initialRenaming?: boolean; nodeIds?: readonly string[] },
 ) {
+  const [moveOpen, setMoveOpen] = useState(false);
   const [tagDialogOpen, setTagDialogOpen] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
 
@@ -45,6 +47,7 @@ export function useFileItemContextMenu(
 
   const menu = (
     <ItemContextMenu
+      onMove={() => setMoveOpen(true)}
       onRename={startRenaming}
       onRemove={handleRemove}
       onManageTags={() => setTagDialogOpen(true)}
@@ -54,6 +57,12 @@ export function useFileItemContextMenu(
 
   const dialogs = (
     <>
+      <MoveItemDialog
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        nodeIds={options?.nodeIds ?? [node.id]}
+        onChanged={onChanged}
+      />
       <TagManageDialog
         open={tagDialogOpen}
         onOpenChange={setTagDialogOpen}

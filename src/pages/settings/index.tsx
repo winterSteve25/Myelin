@@ -70,7 +70,7 @@ export function SettingsPage() {
               {isTouchDevice && <InputSection />}
               <EditingSection />
               <SyncSection />
-              {!IS_MOBILE_BUILD && <DataSection />}
+              <DataSection />
               <PrivacySection />
               {!IS_MOBILE_BUILD && <McpSection />}
               {!IS_MOBILE_BUILD && <KeybindsSection />}
