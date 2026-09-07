@@ -56,7 +56,6 @@ const ALL_SETTINGS_SECTIONS: readonly SettingsSectionMeta[] = [
     id: 'data',
     titleKey: 'dataExport',
     icon: HardDriveDownload,
-    desktopOnly: true,
   },
   { id: 'privacy', titleKey: 'privacy', icon: ShieldCheck },
   { id: 'mcp', titleKey: 'mcp', icon: Bot, desktopOnly: true },
@@ -64,11 +63,6 @@ const ALL_SETTINGS_SECTIONS: readonly SettingsSectionMeta[] = [
   { id: 'about', titleKey: 'about', icon: Info },
 ] as const;
 
-/**
- * Desktop-only sections (MCP, data export, keybindings) are dropped on mobile, and touch-only ones
- * (input mode) on a machine with no touch screen. Drives both the settings rail and the rendered
- * section list so they can't drift apart.
- */
 export const SETTINGS_SECTIONS: readonly SettingsSectionMeta[] =
   ALL_SETTINGS_SECTIONS.filter(
     (section) =>
