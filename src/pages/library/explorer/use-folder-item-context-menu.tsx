@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { ColorPickerDialog } from '@myelin/editor/components/color-picker-dialog';
 import { useCustomColors } from '@myelin/editor/custom-colors';
 import { Logger } from '@myelin/shared/logger';
@@ -21,7 +21,11 @@ const logger = new Logger('FolderItemContextMenu');
 export function useFolderItemContextMenu(
   node: VFSFolderNode,
   onChanged: () => void | Promise<void>,
-  options?: { initialRenaming?: boolean; nodeIds?: readonly string[] },
+  options?: {
+    initialRenaming?: boolean;
+    nodeIds?: readonly string[];
+    createSubmenu?: ReactNode;
+  },
 ) {
   const repository = useRepository();
   const { addColor } = useCustomColors('folder');
@@ -65,6 +69,7 @@ export function useFolderItemContextMenu(
       onRemove={handleRemove}
       onManageTags={() => setTagDialogOpen(true)}
     >
+      {options?.createSubmenu}
       <FolderColorSubmenu
         color={node.color}
         onSelect={(color) => void applyColor(color)}

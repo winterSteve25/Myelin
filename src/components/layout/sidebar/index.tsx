@@ -65,8 +65,9 @@ export function Sidebar({ fill = false }: { fill?: boolean } = {}) {
     refreshMeta();
   }, [refreshMeta]);
 
+  const [importParentId, setImportParentId] = useState<string | null>(null);
   const imports = useImports({
-    parentId: null,
+    parentId: importParentId,
     onChanged: refreshAfterImport,
   });
 
@@ -240,7 +241,10 @@ export function Sidebar({ fill = false }: { fill?: boolean } = {}) {
           <CreateNewDropdown
             onNewFolder={handleNewFolder}
             onNewFile={handleNewFile}
-            onImport={imports.openPicker}
+            onImport={() => {
+              setImportParentId(null);
+              imports.openPicker();
+            }}
             importDisabled={imports.importDisabled}
           />
         </div>
@@ -253,6 +257,11 @@ export function Sidebar({ fill = false }: { fill?: boolean } = {}) {
           searchQuery={searchQuery}
           searchMode={searchMode}
           filterTags={filterTags}
+          importDisabled={imports.importDisabled}
+          onImport={(parentId) => {
+            setImportParentId(parentId);
+            imports.openPicker();
+          }}
           onChanged={refreshMeta}
         />
       </div>

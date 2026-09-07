@@ -150,6 +150,8 @@ interface SidebarTreeProps {
   searchQuery: string;
   searchMode: SearchMode;
   filterTags: string[];
+  onImport: (parentId: string) => void;
+  importDisabled: boolean;
   /** Notified after a row edit (rename/move/delete) so the sidebar can refresh
    * its tag counts and file total alongside the tree. */
   onChanged?: () => void;
@@ -161,6 +163,8 @@ export function SidebarTree({
   searchQuery,
   searchMode,
   filterTags,
+  onImport,
+  importDisabled,
   onChanged,
 }: SidebarTreeProps) {
   const strings = useMessages();
@@ -355,26 +359,39 @@ export function SidebarTree({
     [loadFolder],
   );
 
-  const startNewFolder = useCallback(async () => {
-    const name = await repository.getUniqueFileName(
-      strings.library.createNew.unnamedFolder,
-      ROOT_KEY,
-    );
-    const id = await repository.createFolder(name, ROOT_KEY);
-    setRenamingId(id);
-    await loadFolder(ROOT_KEY);
-    requestAnimationFrame(() => setRenamingId(null));
-  }, [loadFolder, repository, strings.library.createNew.unnamedFolder]);
+  const startNewFolder = useCallback(
+    async (parentId: string | null = ROOT_KEY) => {
+      const name = await repository.getUniqueFileName(
+        strings.library.createNew.unnamedFolder,
+        parentId,
+      );
+      const id = await repository.createFolder(name, parentId);
+      setRenamingId(id);
+      if (parentId !== null) {
+        setExpanded((prev) => new Set(prev).add(parentId));
+      }
+      await loadFolder(parentId);
+      requestAnimationFrame(() => setRenamingId(null));
+    },
+    [loadFolder, repository, strings.library.createNew.unnamedFolder],
+  );
 
   const startNewFile = useCallback(
-    async (title: string, type: FileType) => {
-      const name = await repository.getUniqueFileName(title, ROOT_KEY);
+    async (
+      title: string,
+      type: FileType,
+      parentId: string | null = ROOT_KEY,
+    ) => {
+      const name = await repository.getUniqueFileName(title, parentId);
       const id =
         type === 'mcanvas'
-          ? await createBlankCanvasFile(repository, name, ROOT_KEY)
-          : await repository.createFile(name, type, ROOT_KEY);
+          ? await createBlankCanvasFile(repository, name, parentId)
+          : await repository.createFile(name, type, parentId);
       setRenamingId(id);
-      await loadFolder(ROOT_KEY);
+      if (parentId !== null) {
+        setExpanded((prev) => new Set(prev).add(parentId));
+      }
+      await loadFolder(parentId);
       requestAnimationFrame(() => setRenamingId(null));
     },
     [loadFolder, repository],
@@ -508,6 +525,25 @@ export function SidebarTree({
           key={node.id}
           node={node}
           expanded={isExpanded}
+          onNewFolder={() => {
+            void startNewFolder(node.id)
+              .then(notify)
+              .catch((error) => {
+                logger.error('Failed to create folder', error);
+              });
+          }}
+          onNewFile={(title, type) => {
+            void startNewFile(title, type, node.id)
+              .then(notify)
+              .catch((error) => {
+                logger.error('Failed to create canvas', error);
+              });
+          }}
+          importDisabled={importDisabled}
+          onImport={() => {
+            setExpanded((prev) => new Set(prev).add(node.id));
+            onImport(node.id);
+          }}
           onToggle={() =>
             isFlat ? toggleResultFolder(node.id) : toggle(node.id)
           }

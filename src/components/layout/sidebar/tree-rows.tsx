@@ -2,7 +2,7 @@ import { ChevronRight, Folder } from 'lucide-react';
 import { cn } from '@myelin/editor/utils';
 import { ContextMenu, ContextMenuTrigger } from '@myelin/ui/context-menu';
 import { openNote } from '@/lib/note/navigation';
-import type { VFSFileNode, VFSFolderNode } from '@/lib/sync';
+import type { FileType, VFSFileNode, VFSFolderNode } from '@/lib/sync';
 import { useTabController } from '@/lib/tabs/context';
 import { formatExplorerItemAccessibleName } from '@/pages/library/accessibility-labels';
 import { getFileTypeIcon } from '@/pages/library/explorer/file-icon';
@@ -11,6 +11,7 @@ import { TagList } from '@/pages/library/explorer/tag-list';
 import { useDropTarget } from '@/pages/library/explorer/use-drop-target';
 import { useFileItemContextMenu } from '@/pages/library/explorer/use-file-item-context-menu';
 import { useFolderItemContextMenu } from '@/pages/library/explorer/use-folder-item-context-menu';
+import { FolderCreateSubmenu } from './folder-create-submenu';
 import { TreeIndentGuides, treeRowPadding } from './indent-guides';
 
 const tagListProps = {
@@ -35,6 +36,10 @@ interface FolderRowProps extends RowProps {
   node: VFSFolderNode;
   expanded: boolean;
   onToggle: () => void;
+  onNewFolder: () => void;
+  onNewFile: (title: string, type: FileType) => void;
+  onImport: () => void;
+  importDisabled: boolean;
 }
 
 export function SidebarFolderRow({
@@ -46,6 +51,10 @@ export function SidebarFolderRow({
   selectionIds,
   onSelect,
   onToggle,
+  onNewFolder,
+  onNewFile,
+  onImport,
+  importDisabled,
   onChanged,
 }: FolderRowProps) {
   const {
@@ -60,6 +69,14 @@ export function SidebarFolderRow({
   } = useFolderItemContextMenu(node, onChanged, {
     nodeIds: selected ? selectionIds : undefined,
     initialRenaming: autoRename,
+    createSubmenu: (
+      <FolderCreateSubmenu
+        onNewFolder={onNewFolder}
+        onNewFile={onNewFile}
+        onImport={onImport}
+        importDisabled={importDisabled}
+      />
+    ),
   });
   const { dragOver, dropTargetProps } = useDropTarget({
     targetFolderId: node.id,
