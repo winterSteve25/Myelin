@@ -820,10 +820,6 @@ const fr: typeof en = {
         label: 'Image ou PDF',
         description: 'Déposez des fichiers ou collez une URL',
       },
-      camera: {
-        label: 'Prendre une photo',
-        description: 'Prenez une photo avec votre appareil',
-      },
       latex: {
         label: 'LaTeX',
         description: 'Un bloc mathématique pour écrire des équations',

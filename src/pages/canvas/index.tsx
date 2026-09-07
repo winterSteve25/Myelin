@@ -533,7 +533,6 @@ function CanvasViewInner({
         onInsertEmbed={inserts.onInsertEmbed}
         onInsertLatex={inserts.onInsertLatex}
         onInsertAudio={inserts.onInsertAudio}
-        onInsertCamera={inserts.onInsertCamera}
         onClose={inserts.closeInsert}
       />
     ),
@@ -543,7 +542,6 @@ function CanvasViewInner({
       inserts.onInsertFrame,
       inserts.onInsertLatex,
       inserts.onInsertAudio,
-      inserts.onInsertCamera,
     ],
   );
   const embedPresence = usePresence(inserts.embedOpen);
@@ -688,7 +686,6 @@ function CanvasViewInner({
             onInsertEmbed={inserts.onContextInsertEmbed}
             onInsertLatex={inserts.onContextInsertLatex}
             onInsertAudio={inserts.onContextInsertAudio}
-            onInsertCamera={inserts.onContextInsertCamera}
             onClose={inserts.closeContextInsert}
           />
         </div>
