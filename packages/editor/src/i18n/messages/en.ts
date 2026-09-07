@@ -242,6 +242,13 @@ const en = {
       selectedCount: (count: number) => `${count} items`,
     },
     itemMenu: {
+      moveTo: 'Move to…',
+      moveHere: 'Move here',
+      workspace: 'Workspace',
+      back: 'Back',
+      loadError: 'Unable to load folders.',
+      moveError: 'Unable to move items.',
+
       rename: 'Rename',
       manageTags: 'Manage Tags',
       color: 'Color',

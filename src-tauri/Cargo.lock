@@ -4692,6 +4692,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-pencil",
  "tauri-plugin-process",
+ "tauri-plugin-scoped-storage",
  "tauri-plugin-stronghold",
  "tauri-plugin-updater",
  "tokenizers 0.23.1",
@@ -8830,6 +8831,17 @@ checksum = "d55511a7bf6cd70c8767b02c97bf8134fa434daf3926cfc1be0a0f94132d165a"
 dependencies = [
  "tauri",
  "tauri-plugin",
+]
+
+[[package]]
+name = "tauri-plugin-scoped-storage"
+version = "1.5.1"
+source = "git+https://github.com/myelin-notes/tauri-plugin-scoped-storage.git#def945f7ccd32a4866792cf22d2770a593d3466e"
+dependencies = [
+ "serde",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.18",
 ]
 
 [[package]]

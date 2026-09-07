@@ -109,6 +109,11 @@ pub fn run() {
             onenote_import::parse_onenote,
         ]);
 
+    #[cfg(mobile)]
+    {
+        builder = builder.plugin(tauri_plugin_scoped_storage::init());
+    }
+
     #[cfg(debug_assertions)]
     {
         builder = builder.plugin(tauri_plugin_mcp_bridge::init());

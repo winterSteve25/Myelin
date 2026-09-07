@@ -8,6 +8,7 @@ import { TagManageDialog } from '../tag-manage-dialog';
 import { FolderColorSubmenu } from './folder-color-submenu';
 import { DEFAULT_FOLDER_COLOR } from './folder-colors';
 import { ItemContextMenu } from './item-context-menu';
+import { MoveItemDialog } from './move-item-dialog';
 import { useExplorerItem } from './use-explorer-item';
 
 const logger = new Logger('FolderItemContextMenu');
@@ -30,6 +31,7 @@ export function useFolderItemContextMenu(
   const repository = useRepository();
   const { addColor } = useCustomColors('folder');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
   const [tagDialogOpen, setTagDialogOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -65,6 +67,7 @@ export function useFolderItemContextMenu(
 
   const menu = (
     <ItemContextMenu
+      onMove={() => setMoveOpen(true)}
       onRename={startRenaming}
       onRemove={handleRemove}
       onManageTags={() => setTagDialogOpen(true)}
@@ -83,6 +86,12 @@ export function useFolderItemContextMenu(
 
   const dialogs = (
     <>
+      <MoveItemDialog
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        nodeIds={options?.nodeIds ?? [node.id]}
+        onChanged={onChanged}
+      />
       <TagManageDialog
         open={tagDialogOpen}
         onOpenChange={setTagDialogOpen}

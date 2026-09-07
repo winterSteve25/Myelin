@@ -232,6 +232,13 @@ const zhHans: typeof en = {
       selectedCount: (count: number) => `${count} 个项目`,
     },
     itemMenu: {
+      moveTo: '移动到…',
+      moveHere: '移动到此处',
+      workspace: '工作区',
+      back: '返回',
+      loadError: '无法加载文件夹。',
+      moveError: '无法移动项目。',
+
       rename: '重命名',
       manageTags: '管理标签',
       color: '颜色',

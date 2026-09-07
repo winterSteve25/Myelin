@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react';
-import { FolderOpen, History, Pencil, Tag, Trash2 } from 'lucide-react';
+import {
+  FolderInput,
+  FolderOpen,
+  History,
+  Pencil,
+  Tag,
+  Trash2,
+} from 'lucide-react';
 import { useMessages } from '@myelin/editor/i18n';
 import {
   ContextMenuContent,
@@ -8,6 +15,7 @@ import {
 } from '@myelin/ui/context-menu';
 
 interface ItemContextMenuProps {
+  onMove: () => void;
   onRename: () => void;
   onRemove: () => void;
   onReveal?: () => void;
@@ -18,6 +26,7 @@ interface ItemContextMenuProps {
 }
 
 export function ItemContextMenu({
+  onMove,
   onRename,
   onRemove,
   onReveal,
@@ -35,6 +44,13 @@ export function ItemContextMenu({
       >
         <Pencil className="size-4" />
         {strings.library.itemMenu.rename}
+      </ContextMenuItem>
+      <ContextMenuItem
+        className="gap-2.5 rounded-md px-3 py-2 text-sm text-text-secondary focus:bg-surface focus:text-text-primary"
+        onClick={onMove}
+      >
+        <FolderInput className="size-4" />
+        {strings.library.itemMenu.moveTo}
       </ContextMenuItem>
       {onManageTags && (
         <ContextMenuItem
