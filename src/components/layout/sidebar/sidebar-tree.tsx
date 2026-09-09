@@ -533,11 +533,9 @@ export function SidebarTree({
               });
           }}
           onNewFile={(title, type) => {
-            void startNewFile(title, type, node.id)
-              .then(notify)
-              .catch((error) => {
-                logger.error('Failed to create canvas', error);
-              });
+            void startNewFile(title, type, node.id).catch((error) => {
+              logger.error('Failed to create canvas', error);
+            });
           }}
           importDisabled={importDisabled}
           onImport={() => {
