@@ -186,6 +186,26 @@ jobs:
           TAG: ${{ github.event.release.tag_name }}
         run: node scripts/set-version.mjs "${TAG#v}"
 
+      - name: Require macOS signing secrets for releases
+        if: matrix.platform == 'macos-latest' && github.event_name == 'release'
+        env:
+          CERTIFICATE: ${{ secrets.MACOS_DEVELOPER_ID_CERTIFICATE }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
+        run: |
+          missing=()
+          for secret in CERTIFICATE CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD; do
+            if [ -z "${!secret}" ]; then
+              missing+=("$secret")
+            fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing macOS release secrets: ${missing[*]}"
+            echo "::error::Use a Developer ID Application certificate and an Apple app-specific password for notarization."
+            exit 1
+          fi
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
@@ -199,6 +219,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Desktop releases use a Developer ID Application certificate, which is
+          # distinct from the Apple Distribution certificate used by the iOS job.
+          APPLE_CERTIFICATE: ${{ github.event_name == 'release' && secrets.MACOS_DEVELOPER_ID_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ github.event_name == 'release' && secrets.MACOS_DEVELOPER_ID_CERTIFICATE_PASSWORD || '' }}
+          APPLE_ID: ${{ github.event_name == 'release' && secrets.MACOS_NOTARIZATION_APPLE_ID || '' }}
+          APPLE_PASSWORD: ${{ github.event_name == 'release' && secrets.MACOS_NOTARIZATION_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ matrix.platform == 'macos-latest' && 'P4Z946QP26' || '' }}
+          APPLE_PROVIDER_SHORT_NAME: ${{ secrets.MACOS_NOTARIZATION_PROVIDER_SHORT_NAME }}
           # Source maps for posthog-js exception symbolication. yarn build (run
           # by tauri-action) injects chunk IDs and uploads the maps via
           # scripts/posthog-sourcemaps.mjs. The key is only set on release
