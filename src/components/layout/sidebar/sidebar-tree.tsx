@@ -371,7 +371,6 @@ export function SidebarTree({
         setExpanded((prev) => new Set(prev).add(parentId));
       }
       await loadFolder(parentId);
-      requestAnimationFrame(() => setRenamingId(null));
     },
     [loadFolder, repository, strings.library.createNew.unnamedFolder],
   );
@@ -392,7 +391,6 @@ export function SidebarTree({
         setExpanded((prev) => new Set(prev).add(parentId));
       }
       await loadFolder(parentId);
-      requestAnimationFrame(() => setRenamingId(null));
     },
     [loadFolder, repository],
   );
@@ -456,6 +454,18 @@ export function SidebarTree({
           ),
     [childrenMap, collapsedIds, expanded, isFlat, resultTree, sortMode],
   );
+
+  useEffect(() => {
+    if (
+      !renamingId ||
+      !visibleRows.some(({ node }) => node.id === renamingId)
+    ) {
+      return;
+    }
+    const frame = requestAnimationFrame(() => setRenamingId(null));
+    return () => cancelAnimationFrame(frame);
+  }, [renamingId, visibleRows]);
+
   // Only visible rows act; ids hidden by collapse/move/delete stay inert until shown again.
   // Descendants of a selected folder are dropped too, or moving the set would flatten them.
   const selectionIds = useMemo(() => {
@@ -526,11 +536,9 @@ export function SidebarTree({
           node={node}
           expanded={isExpanded}
           onNewFolder={() => {
-            void startNewFolder(node.id)
-              .then(notify)
-              .catch((error) => {
-                logger.error('Failed to create folder', error);
-              });
+            void startNewFolder(node.id).catch((error) => {
+              logger.error('Failed to create folder', error);
+            });
           }}
           onNewFile={(title, type) => {
             void startNewFile(title, type, node.id).catch((error) => {
