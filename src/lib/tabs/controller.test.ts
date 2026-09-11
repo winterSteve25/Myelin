@@ -196,6 +196,33 @@ describe('TabStateController', () => {
     expectValidWindowState(controller.getSnapshot());
   });
 
+  it('waits for the close hook before removing a tab', async () => {
+    let allowClose!: () => void;
+    let closeStarted = false;
+    const closeReady = new Promise<void>((resolve) => {
+      allowClose = resolve;
+    });
+    const controller = new TabStateController(undefined, undefined, {
+      beforeCloseTab: () => {
+        if (closeStarted) {
+          return;
+        }
+        closeStarted = true;
+        return closeReady;
+      },
+    });
+    const pane = focusedPane(controller);
+    const alphaId = openCanvas(controller, 'alpha', 'Alpha');
+
+    controller.closeTab(alphaId, pane.id);
+    expect(tabTitles(rootPane(controller))).toEqual(['Alpha']);
+
+    allowClose();
+    await closeReady;
+    await Promise.resolve();
+    expect(tabTitles(focusedPane(controller))).toEqual([]);
+  });
+
   it('keeps active tabs valid while closing tabs', () => {
     const controller = new TabStateController();
     const paneId = focusedPane(controller).id;

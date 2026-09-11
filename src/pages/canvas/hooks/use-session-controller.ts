@@ -8,6 +8,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { DrawableCanvas } from '@myelin/editor/drawable-canvas';
+import { hasAudioRecordingsForOwner } from '@myelin/editor/elements/audio/recording';
 import { codeOutputBridge } from '@myelin/editor/elements/code-output/bridge';
 import { PageFrameElement } from '@myelin/editor/elements/page-frame-element';
 import { createMediaPathResolver } from '@myelin/editor/page-frame/media-path/resolution';
@@ -32,6 +33,10 @@ import type {
   RenameReferencesChoice,
   RenameReferencesPrompt,
 } from '@/pages/library/explorer/use-explorer-item';
+import {
+  preserveCanvasSession,
+  takePreservedCanvasSession,
+} from './audio-session-lifecycle';
 
 type PageFrameRenameListener = (
   ownerNoteId: VFSNodeId,
@@ -133,7 +138,7 @@ export class CanvasSessionController {
       return;
     }
 
-    let session: NoteSession | null = null;
+    let session: NoteSession | null = takePreservedCanvasSession(noteId);
     let drawableCanvas: DrawableCanvas | null = null;
 
     try {
@@ -142,7 +147,7 @@ export class CanvasSessionController {
         repositoryKind: this.repository.kind,
       });
 
-      session = await this.repository.openSession(noteId);
+      session ??= await this.repository.openSession(noteId);
       if (this.shouldAbortOpen(token)) {
         await this.cleanupAbandonedSession(session);
         return;
@@ -163,6 +168,10 @@ export class CanvasSessionController {
           resolveNoteLinkRefByTitle(this.repository, title, frameNameCache),
         createMediaPathResolver(this.repository),
         session.localPeerId,
+        noteId,
+        async () => {
+          await session!.save();
+        },
       );
       drawableCanvas.setOnPageFrameRenamed((uuid, newName) => {
         this.handlePageFrameRenamed(noteId, uuid, newName);
@@ -247,6 +256,11 @@ export class CanvasSessionController {
       activeSession.unsubscribeStatus();
       activeSession.unsubscribePeers();
       activeSession.drawableCanvas.destroy();
+
+      if (hasAudioRecordingsForOwner(activeSession.noteSession.id)) {
+        preserveCanvasSession(activeSession.noteSession);
+        return;
+      }
 
       try {
         await activeSession.noteSession.close();

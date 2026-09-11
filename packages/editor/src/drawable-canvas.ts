@@ -296,6 +296,10 @@ export class DrawableCanvas {
     resolveNoteLink?: ResolveNoteLink,
     resolveMedia?: ResolveMediaSrc,
     private readonly _localPeerId = '',
+    private readonly _ownerNoteId = '',
+    private readonly _onAudioRecordingSaved:
+      | (() => void | Promise<void>)
+      | undefined = undefined,
   ) {
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) {
@@ -474,6 +478,8 @@ export class DrawableCanvas {
     }
     if (element instanceof AudioElement) {
       element.setLocalPeerId(this._localPeerId);
+      element.setOwnerNoteId(this._ownerNoteId);
+      element.setOnRecordingSaved(this._onAudioRecordingSaved);
       element.setLivePeers(this._livePeers);
     }
   }

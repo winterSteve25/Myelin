@@ -350,6 +350,7 @@ export interface TabControllerOptions {
   // Opening a document replaces the pane's current tab instead of stacking beside it. Set on phone
   // layouts, which have no tab strip to switch or close with.
   singleTab?: boolean;
+  beforeCloseTab?: (tab: Tab) => Promise<void> | void;
 }
 
 export class TabStateController {
@@ -357,6 +358,7 @@ export class TabStateController {
   private readonly listeners = new Set<() => void>();
   private readonly onEmpty?: () => void;
   private readonly singleTab: boolean;
+  private readonly beforeCloseTab?: TabControllerOptions['beforeCloseTab'];
 
   // `onEmpty` runs when the last pane is closed. The window layer uses it to close the native
   // window; without it the window falls back to a fresh default state (used by tests).
@@ -370,6 +372,7 @@ export class TabStateController {
       : createDefaultWindowState();
     this.onEmpty = onEmpty;
     this.singleTab = options?.singleTab ?? false;
+    this.beforeCloseTab = options?.beforeCloseTab;
   }
 
   subscribe = (listener: () => void): (() => void) => {
@@ -506,6 +509,16 @@ export class TabStateController {
 
     const removedIndex = pane.tabs.findIndex((tab) => tab.id === tabId);
     if (removedIndex === -1) {
+      return;
+    }
+
+    const removedTab = pane.tabs[removedIndex]!;
+    const beforeClose = this.beforeCloseTab?.(removedTab);
+    if (beforeClose) {
+      void Promise.resolve(beforeClose).then(
+        () => this.closeTab(tabId, paneId),
+        () => undefined,
+      );
       return;
     }
 
