@@ -1,9 +1,4 @@
-import {
-  getStroke,
-  getStrokeOutlinePoints,
-  getStrokePoints,
-  type StrokeOptions,
-} from 'perfect-freehand';
+import { getStroke } from 'perfect-freehand';
 import type * as Y from 'yjs';
 import { resolveInkColor } from '../canvas-theme';
 import { parseCssColor } from '../pdf-export/color';
@@ -20,6 +15,10 @@ export interface StrokeStyle {
 }
 
 export const DEFAULT_STABILIZATION = 0.5;
+
+// perfect-freehand uses fixed 3-unit end filtering and a 1-unit dot offset. Normalize to its
+// default size so those thresholds don't swallow bends or inflate caps on thin strokes.
+const OUTLINE_SIZE = 16;
 
 // One write within the UndoManager's capture window keeps the whole stroke (creation → points)
 // in a single undo step without paying a transaction per pointer sample.
@@ -208,24 +207,37 @@ export class StrokeElement extends DrawableElement {
     }
   }
 
-  /** Materialize the flat buffer as perfect-freehand input tuples (transient). */
-  private toTuples(): [number, number, number][] {
+  private strokeOutline(): number[][] {
+    if (this.points.length < 3 || this.style.size <= 0) {
+      return [];
+    }
+
+    const scale = OUTLINE_SIZE / this.style.size;
     const pts = this.points;
+    const originX = pts[0];
+    const originY = pts[1];
     const n = (pts.length / 3) | 0;
-    const out = new Array<[number, number, number]>(n);
+    const input = new Array<[number, number, number]>(n);
     for (let i = 0; i < n; i++) {
       const j = i * 3;
-      out[i] = [pts[j], pts[j + 1], pts[j + 2]];
+      input[i] = [
+        (pts[j] - originX) * scale,
+        (pts[j + 1] - originY) * scale,
+        pts[j + 2],
+      ];
     }
-    return out;
-  }
 
-  private strokeOptions(): StrokeOptions {
-    return {
+    const outline = getStroke(input, {
       simulatePressure: !this.hasPressure,
-      size: this.style.size,
+      size: OUTLINE_SIZE,
       streamline: this.style.stabilization ?? DEFAULT_STABILIZATION,
-    };
+      last: true,
+    });
+    for (const point of outline) {
+      point[0] = point[0] / scale + originX;
+      point[1] = point[1] / scale + originY;
+    }
+    return outline;
   }
 
   public draw2D(ctx: CanvasRenderingContext2D, _deltaTime: number): void {
@@ -234,7 +246,7 @@ export class StrokeElement extends DrawableElement {
     }
     if (this.dirty) {
       // The outline is only needed to build the Path2D; it is not retained.
-      const outline = getStroke(this.toTuples(), this.strokeOptions());
+      const outline = this.strokeOutline();
       const path = new Path2D();
       appendStrokeOutline(path, outline);
       this.cachedPath = path;
@@ -250,7 +262,7 @@ export class StrokeElement extends DrawableElement {
       return;
     }
     // Same outline perfect-freehand produces on screen, as a filled vector path.
-    const outline = getStroke(this.toTuples(), this.strokeOptions());
+    const outline = this.strokeOutline();
     if (outline.length < 3) {
       return;
     }
@@ -306,11 +318,7 @@ export class StrokeElement extends DrawableElement {
       return;
     }
 
-    const options = this.strokeOptions();
-    const outlinePoints = getStrokeOutlinePoints(
-      getStrokePoints(this.toTuples(), options),
-      options,
-    );
+    const outlinePoints = this.strokeOutline();
 
     let minX = Number.POSITIVE_INFINITY;
     let minY = Number.POSITIVE_INFINITY;
