@@ -700,6 +700,10 @@ const zhHans: typeof en = {
         title: '引用',
         subtitle: '将此块转换为引用块',
       },
+      callout: {
+        title: '提示框',
+        subtitle: '插入高亮的笔记提示框',
+      },
       bulletList: {
         title: '项目符号列表',
         subtitle: '将此块转换为项目符号列表项',
