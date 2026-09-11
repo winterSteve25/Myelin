@@ -322,10 +322,6 @@ function CanvasViewInner({
     },
   );
   useEffect(() => {
-    if (!activeEditorView) {
-      return;
-    }
-
     const handleOpenRequest = (event: Event) => {
       const { detail } = event as CustomEvent<NoteLinkOpenRequestDetail>;
       void openPageFrameNoteLink(detail).catch((error) => {
@@ -336,17 +332,14 @@ function CanvasViewInner({
       });
     };
 
-    activeEditorView.dom.addEventListener(
-      NOTE_LINK_OPEN_REQUEST_EVENT,
-      handleOpenRequest,
-    );
+    document.addEventListener(NOTE_LINK_OPEN_REQUEST_EVENT, handleOpenRequest);
     return () => {
-      activeEditorView.dom.removeEventListener(
+      document.removeEventListener(
         NOTE_LINK_OPEN_REQUEST_EVENT,
         handleOpenRequest,
       );
     };
-  }, [activeEditorView]);
+  }, [openPageFrameNoteLink]);
   const pageFrameAutocomplete = usePageFrameAutocomplete({
     repository,
     view: activeEditorView,
