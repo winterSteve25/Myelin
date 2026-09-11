@@ -5,8 +5,7 @@ import type { SiteCopy } from './index';
  */
 const en: SiteCopy = {
   meta: {
-    title:
-      'Myelin Notes | Note-Taking App for Mac, Windows & Linux',
+    title: 'Myelin Notes | Note-Taking App for Mac, Windows & Linux',
     description:
       'Combine handwriting, typed notes, and PDFs in Myelin Notes for Mac, Windows, and Linux. Works offline, with no account. Free for personal use.',
   },
