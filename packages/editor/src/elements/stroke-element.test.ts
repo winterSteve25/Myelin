@@ -184,6 +184,48 @@ describe('appendStrokeOutline', () => {
 describe('StrokeElement live bounds', () => {
   const VIEW = new DOMRect(0, 0, 1000, 1000);
 
+  it.each([
+    { name: 'dot', points: [0, 0, 0.5] },
+    { name: 'short line', points: [0, 0, 0.5, 0.8, 0.8, 0.5] },
+  ])('keeps a thin $name within its maximum start radius', ({ points }) => {
+    const s = new StrokeElement('short', points, true, { ...STYLE, size: 1 });
+    s.updateBounds();
+
+    expect(s.localBoundingBox.left).toBeGreaterThanOrEqual(-0.75);
+    expect(s.localBoundingBox.top).toBeGreaterThanOrEqual(-0.75);
+  });
+
+  it.each([
+    0, 0.5, 1,
+  ])('keeps the tip at the latest sample with stabilization %s', (stabilization) => {
+    const s = new StrokeElement('tip', [], true, {
+      ...STYLE,
+      stabilization,
+    });
+    s.addPoint(0, 0, 0.5);
+    for (const x of [20, 40, 60]) {
+      s.addPoint(x, 0, 0.5);
+      s.updateBounds();
+      expect(s.localBoundingBox.right).toBeCloseTo(x + STYLE.size / 2, 1);
+    }
+  });
+
+  it.each([
+    0, 0.5, 1,
+  ])('keeps the tip at the latest sample through a turn with stabilization %s', (stabilization) => {
+    const s = new StrokeElement('turn', [], true, {
+      ...STYLE,
+      stabilization,
+    });
+    s.addPoint(0, 0, 0.5);
+    s.addPoint(20, 0, 0.5);
+    s.addPoint(40, 0, 0.5);
+    s.addPoint(40, 30, 0.5);
+    s.updateBounds();
+
+    expect(s.localBoundingBox.bottom).toBeCloseTo(30 + STYLE.size / 2, 1);
+  });
+
   it('covers the first sample of a stroke', () => {
     const s = new StrokeElement('live1', [], false, STYLE);
     expect(s.intersectsWorldRect(VIEW, 0)).toBe(true);
@@ -232,5 +274,47 @@ describe('StrokeElement live bounds', () => {
     s.addPoint(5010, 5010, 0.5);
 
     expect(s.intersectsWorldRect(new DOMRect(0, 0, 100, 100), 0)).toBe(false);
+  });
+});
+
+describe('StrokeElement outline scale', () => {
+  function outlineAtSize(size: number, hasPressure: boolean): number[] {
+    const points = Array.from({ length: 100 }, (_, i) => [
+      i * 0.08 * size,
+      Math.sin(i / 8) * 0.8 * size,
+      0.2 + (0.6 * i) / 99,
+    ]).flat();
+    const stroke = new StrokeElement('wave', points, hasPressure, {
+      ...STYLE,
+      size,
+    });
+    let outline: number[] = [];
+    stroke.drawToPdf({
+      worldToPagePt: (x, y) => ({ x: x / size, y: y / size }),
+      ptPerWorldY: 1 / size,
+      push: (item) => {
+        if (item.t === 'path') {
+          outline = item.pts;
+        }
+      },
+      addImageBase64: () => 0,
+      addFontBase64: () => 0,
+    });
+    return outline;
+  }
+
+  it.each([
+    false,
+    true,
+  ])('preserves bends across pen sizes with real pressure %s', (hasPressure) => {
+    const reference = outlineAtSize(16, hasPressure);
+    expect(reference.length).toBeGreaterThan(0);
+    for (const size of [1, 2, 8, 40]) {
+      const outline = outlineAtSize(size, hasPressure);
+      expect(outline).toHaveLength(reference.length);
+      outline.forEach((coordinate, i) => {
+        expect(coordinate).toBeCloseTo(reference[i], 8);
+      });
+    }
   });
 });
