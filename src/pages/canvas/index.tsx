@@ -337,7 +337,7 @@ function CanvasViewInner({
         handleOpenRequest,
       );
     };
-  }, [openPageFrameNoteLink]);
+  }, []);
   const pageFrameAutocomplete = usePageFrameAutocomplete({
     repository,
     view: activeEditorView,
