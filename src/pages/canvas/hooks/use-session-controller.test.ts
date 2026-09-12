@@ -15,8 +15,7 @@ const { drawableCanvasCtor, resolveNoteLinkRefByTitleMock } = vi.hoisted(
         elements: [],
         viewport: { screenToWorld: vi.fn() },
         addElement: vi.fn(),
-        setBackgroundHost: vi.fn(),
-        setOverlayCanvas: vi.fn(),
+        setBackgroundCanvas: vi.fn(),
         setDomOverlayHost: vi.fn(),
         setOnPageFrameRenamed: vi.fn(),
         setLivePeers: vi.fn(),
@@ -100,7 +99,6 @@ describe('CanvasSessionController', () => {
       { current: null },
       { current: null },
       { current: null },
-      { current: null },
       { current: [] },
     );
 
@@ -139,7 +137,6 @@ describe('CanvasSessionController', () => {
     const controller = new CanvasSessionController(
       repository as unknown as ControllerRepository,
       { current: {} as HTMLCanvasElement },
-      { current: null },
       { current: null },
       { current: null },
       drawableCanvasRef,
@@ -190,7 +187,6 @@ describe('CanvasSessionController', () => {
       { current: null },
       { current: null },
       { current: null },
-      { current: null },
       { current: [] },
     );
 
@@ -232,7 +228,6 @@ describe('CanvasSessionController', () => {
     const controller = new CanvasSessionController(
       repository as unknown as ControllerRepository,
       { current: {} as HTMLCanvasElement },
-      { current: null },
       { current: null },
       { current: null },
       drawableCanvasRef,

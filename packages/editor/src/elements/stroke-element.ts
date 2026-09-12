@@ -8,6 +8,8 @@ import type * as Y from 'yjs';
 import { resolveInkColor } from '../canvas-theme';
 import { parseCssColor } from '../pdf-export/color';
 import type { PdfHarvestContext } from '../pdf-export/harvest';
+import { type DrawingContext, WebGLPainter } from '../rendering/painter';
+import { RenderPath } from '../rendering/path';
 import { CollisionHelper } from '../utils/collision-helper';
 import { DrawableElement } from './drawable-element';
 import { ElementType } from './element-type';
@@ -34,6 +36,7 @@ export class StrokeElement extends DrawableElement {
   protected box: DOMRect;
   protected dirty: boolean = true;
   protected cachedPath: Path2D;
+  private gpuPath = new RenderPath();
 
   /** Wall-clock of the last Yjs flush, for throttling live writes. */
   private lastFlush: number = 0;
@@ -228,7 +231,7 @@ export class StrokeElement extends DrawableElement {
     };
   }
 
-  public draw2D(ctx: CanvasRenderingContext2D, _deltaTime: number): void {
+  public draw2D(ctx: DrawingContext, _deltaTime: number): void {
     if (this.points.length < 3) {
       return;
     }
@@ -237,12 +240,18 @@ export class StrokeElement extends DrawableElement {
       const outline = getStroke(this.toTuples(), this.strokeOptions());
       const path = new Path2D();
       appendStrokeOutline(path, outline);
+      this.gpuPath = new RenderPath();
+      appendStrokeOutline(this.gpuPath, outline);
       this.cachedPath = path;
       this.dirty = false;
     }
 
     ctx.fillStyle = resolveInkColor(this.style.color);
-    ctx.fill(this.cachedPath);
+    if (ctx instanceof WebGLPainter) {
+      ctx.fillPath(this.gpuPath);
+    } else {
+      ctx.fill(this.cachedPath);
+    }
   }
 
   public override drawToPdf(ctx: PdfHarvestContext): void {
@@ -267,7 +276,7 @@ export class StrokeElement extends DrawableElement {
     x: number,
     y: number,
     radius: number,
-    _ctx: CanvasRenderingContext2D,
+    _ctx: DrawingContext,
   ): boolean {
     // Hit-test the raw centerline inflated by the half-width, not the perfect-freehand outline:
     // avoids storing or recomputing the outline, and the eraser walks this every pointer move.

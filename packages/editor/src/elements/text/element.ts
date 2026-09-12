@@ -12,6 +12,7 @@ import { parseCssColor } from '../../pdf-export/color';
 import type { FontKey } from '../../pdf-export/contract';
 import { familyToKey } from '../../pdf-export/fonts';
 import type { PdfHarvestContext } from '../../pdf-export/harvest';
+import type { DrawingContext } from '../../rendering/painter';
 import { DrawableElement } from '../drawable-element';
 import { ElementType } from '../element-type';
 
@@ -366,7 +367,7 @@ export class TextElement extends DrawableElement {
     x: number,
     y: number,
     _radius: number,
-    _ctx: CanvasRenderingContext2D,
+    _ctx: DrawingContext,
   ): boolean {
     const b = this.box;
     return x >= b.x && x <= b.right && y >= b.y && y <= b.bottom;

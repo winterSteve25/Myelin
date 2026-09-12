@@ -7,6 +7,7 @@ import type { DrawableCanvas, Vector2 } from '../drawable-canvas';
 import { ElementType } from '../elements/element-type';
 import { StrokeElement } from '../elements/stroke-element';
 import type { MessageGetter } from '../i18n';
+import type { DrawingContext } from '../rendering/painter';
 import type { ITool, SvgIcon, ToolId, ToolOption } from './tool';
 
 type EraserStyle = 'stroke' | 'precise';
@@ -89,7 +90,7 @@ export class EraserTool implements ITool {
     });
   }
 
-  public drawCursor(ctx: CanvasRenderingContext2D, position: Vector2): void {
+  public drawCursor(ctx: DrawingContext, position: Vector2): void {
     const palette = getCanvasPalette();
     ctx.fillStyle = palette.selectionFill;
     ctx.beginPath();
