@@ -95,6 +95,9 @@ describe('searchSlashInsertAutocompleteItems', () => {
     expect(searchSlashInsertAutocompleteItems('table', labels)[0]?.id).toBe(
       'slash-table',
     );
+    expect(searchSlashInsertAutocompleteItems('callout', labels)[0]?.id).toBe(
+      'slash-callout',
+    );
     expect(searchSlashInsertAutocompleteItems('code', labels)[0]?.id).toBe(
       'slash-inline-code',
     );
@@ -114,6 +117,7 @@ describe('searchSlashInsertAutocompleteItems', () => {
     expect(ids).not.toContain('slash-heading-1');
     expect(ids).not.toContain('slash-bullet-list');
     expect(ids).not.toContain('slash-table');
+    expect(ids).not.toContain('slash-callout');
     expect(ids).not.toContain('slash-paragraph');
     expect(ids).toContain('slash-link');
     expect(ids).toContain('slash-date-today');
@@ -125,6 +129,7 @@ describe('searchSlashInsertAutocompleteItems', () => {
     );
     expect(ids).toContain('slash-heading-1');
     expect(ids).toContain('slash-table');
+    expect(ids).toContain('slash-callout');
   });
 });
 
@@ -159,6 +164,38 @@ describe('buildSelectSlashInsertAutocompleteTransaction', () => {
     });
     expect(selectedState.selection.from).toBe(1);
     expect(selectedState.selection.to).toBe(1);
+  });
+
+  it('turns the current block into a note callout and places the caret after the marker', () => {
+    const markdown = '/callout';
+    const head = 1 + markdown.length;
+    const state = createState(markdown, head);
+    const activeRequest = findActiveSlashInsertAutocomplete(state);
+
+    expect(activeRequest).not.toBeNull();
+
+    const tr = buildSelectSlashInsertAutocompleteTransaction(
+      state,
+      schema,
+      activeRequest!,
+      findItem('slash-callout'),
+    );
+
+    expect(tr).not.toBeNull();
+
+    const selectedState = state.apply(tr!);
+
+    expect(selectedState.doc.toJSON()).toEqual({
+      type: 'doc',
+      content: [
+        {
+          type: 'blockquote',
+          content: [{ type: 'text', text: '[!note] ' }],
+        },
+      ],
+    });
+    expect(selectedState.selection.from).toBe(9);
+    expect(selectedState.selection.to).toBe(9);
   });
 
   it('inserts paired markdown delimiters and places the caret inside them', () => {

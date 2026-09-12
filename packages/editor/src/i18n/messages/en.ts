@@ -722,6 +722,10 @@ const en = {
         title: 'Quote',
         subtitle: 'Turn this block into a blockquote',
       },
+      callout: {
+        title: 'Callout',
+        subtitle: 'Insert a highlighted note callout',
+      },
       bulletList: {
         title: 'Bullet list',
         subtitle: 'Turn this block into a bulleted list item',
