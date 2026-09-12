@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createWindowStateWithTab, TabStateController } from './controller';
 import type { LayoutNode, PaneNode, SplitNode, WindowState } from './types';
 
@@ -152,6 +152,23 @@ describe('TabStateController', () => {
     expectValidWindowState(controller.getSnapshot());
   });
 
+  it('runs the close hook when replacing a single tab', () => {
+    const beforeCloseTab = vi.fn();
+    const controller = new TabStateController(undefined, undefined, {
+      singleTab: true,
+      beforeCloseTab,
+    });
+    const paneId = focusedPane(controller).id;
+    const alphaId = openCanvas(controller, 'alpha', 'Alpha', paneId);
+
+    openCanvas(controller, 'beta', 'Beta', paneId);
+
+    expect(beforeCloseTab).toHaveBeenCalledOnce();
+    expect(beforeCloseTab).toHaveBeenCalledWith(
+      expect.objectContaining({ id: alphaId }),
+    );
+  });
+
   it('focuses an existing tab in another pane when navigating without a pane', () => {
     const controller = new TabStateController();
     const rootPaneId = focusedPane(controller).id;
@@ -198,24 +215,20 @@ describe('TabStateController', () => {
 
   it('waits for the close hook before removing a tab', async () => {
     let allowClose!: () => void;
-    let closeStarted = false;
     const closeReady = new Promise<void>((resolve) => {
       allowClose = resolve;
     });
+    const beforeCloseTab = vi.fn(() => closeReady);
     const controller = new TabStateController(undefined, undefined, {
-      beforeCloseTab: () => {
-        if (closeStarted) {
-          return;
-        }
-        closeStarted = true;
-        return closeReady;
-      },
+      beforeCloseTab,
     });
     const pane = focusedPane(controller);
     const alphaId = openCanvas(controller, 'alpha', 'Alpha');
 
     controller.closeTab(alphaId, pane.id);
+    controller.closeTab(alphaId, pane.id);
     expect(tabTitles(rootPane(controller))).toEqual(['Alpha']);
+    expect(beforeCloseTab).toHaveBeenCalledOnce();
 
     allowClose();
     await closeReady;
