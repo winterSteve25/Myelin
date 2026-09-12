@@ -22,6 +22,7 @@ export const PaneContent = memo(function PaneContent({
       return (
         <CanvasView
           id={tab.target.id}
+          recordingOwnerId={tab.id}
           initialPageFrameName={tab.target.pageFrameName}
           initialPageFrameId={tab.target.pageFrameId}
         />

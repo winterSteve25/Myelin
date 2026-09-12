@@ -350,6 +350,7 @@ export interface TabControllerOptions {
   // Opening a document replaces the pane's current tab instead of stacking beside it. Set on phone
   // layouts, which have no tab strip to switch or close with.
   singleTab?: boolean;
+  beforeCloseTab?: (tab: Tab) => Promise<void> | void;
 }
 
 export class TabStateController {
@@ -357,6 +358,8 @@ export class TabStateController {
   private readonly listeners = new Set<() => void>();
   private readonly onEmpty?: () => void;
   private readonly singleTab: boolean;
+  private readonly beforeCloseTab?: TabControllerOptions['beforeCloseTab'];
+  private readonly pendingTabCloses = new Set<TabId>();
 
   // `onEmpty` runs when the last pane is closed. The window layer uses it to close the native
   // window; without it the window falls back to a fresh default state (used by tests).
@@ -370,6 +373,7 @@ export class TabStateController {
       : createDefaultWindowState();
     this.onEmpty = onEmpty;
     this.singleTab = options?.singleTab ?? false;
+    this.beforeCloseTab = options?.beforeCloseTab;
   }
 
   subscribe = (listener: () => void): (() => void) => {
@@ -452,6 +456,18 @@ export class TabStateController {
       activePage: undefined,
     };
 
+    if (this.singleTab) {
+      for (const replacedTab of pane.tabs) {
+        if (this.pendingTabCloses.has(replacedTab.id)) {
+          continue;
+        }
+        const beforeClose = this.beforeCloseTab?.(replacedTab);
+        if (beforeClose) {
+          void Promise.resolve(beforeClose).catch(() => {});
+        }
+      }
+    }
+
     this.commit({
       layout: replacePane(state.layout, nextPane),
       focusedPaneId: pane.id,
@@ -498,12 +514,46 @@ export class TabStateController {
   }
 
   closeTab(tabId: TabId, paneId: PaneId): void {
+    if (this.pendingTabCloses.has(tabId)) {
+      return;
+    }
+
     const state = this.state;
     const pane = findPane(state.layout, paneId);
     if (!pane) {
       return;
     }
 
+    const removedIndex = pane.tabs.findIndex((tab) => tab.id === tabId);
+    if (removedIndex === -1) {
+      return;
+    }
+
+    const removedTab = pane.tabs[removedIndex]!;
+    const beforeClose = this.beforeCloseTab?.(removedTab);
+    if (beforeClose) {
+      this.pendingTabCloses.add(tabId);
+      void Promise.resolve(beforeClose).then(
+        () => {
+          this.pendingTabCloses.delete(tabId);
+          this.finishCloseTab(tabId, paneId);
+        },
+        () => {
+          this.pendingTabCloses.delete(tabId);
+        },
+      );
+      return;
+    }
+
+    this.finishCloseTab(tabId, paneId);
+  }
+
+  private finishCloseTab(tabId: TabId, paneId: PaneId): void {
+    const state = this.state;
+    const pane = findPane(state.layout, paneId);
+    if (!pane) {
+      return;
+    }
     const removedIndex = pane.tabs.findIndex((tab) => tab.id === tabId);
     if (removedIndex === -1) {
       return;

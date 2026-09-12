@@ -9,6 +9,7 @@ import { TOOL_ACTIONS } from '@myelin/editor/tools/tool-keybinds';
 import type { WheelPickerHandle } from '@/components/wheel-picker';
 import { useKeybindings } from '@/hooks/useKeybindings';
 import type { VFSNodeId } from '@/lib/sync';
+import type { TabId } from '@/lib/tabs/types';
 import { useCanvasClipboard } from './use-clipboard';
 import { useDrawableCanvasViewState } from './use-drawable-canvas-view-state';
 import type { EmbedFilesFn } from './use-embed-files';
@@ -19,6 +20,7 @@ import { useCanvasThumbnailProducer } from './use-thumbnail-producer';
 
 interface UseCanvasEngineArgs {
   id: VFSNodeId | undefined;
+  recordingOwnerId: TabId;
   thumbnailRootRef: React.RefObject<HTMLElement | null>;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   bgHostRef: React.RefObject<HTMLDivElement | null>;
@@ -36,6 +38,7 @@ interface UseCanvasEngineArgs {
 
 export function useCanvasEngine({
   id,
+  recordingOwnerId,
   thumbnailRootRef,
   canvasRef,
   bgHostRef,
@@ -65,6 +68,7 @@ export function useCanvasEngine({
 
   const sessionController = useCanvasSessionController({
     id,
+    recordingOwnerId,
     canvasRef,
     bgHostRef,
     overlayCanvasRef,
