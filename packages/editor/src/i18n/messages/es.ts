@@ -728,6 +728,10 @@ const es: typeof en = {
         title: 'Cita',
         subtitle: 'Convierte este bloque en una cita',
       },
+      callout: {
+        title: 'Aviso',
+        subtitle: 'Inserta un aviso de nota resaltado',
+      },
       bulletList: {
         title: 'Lista con viñetas',
         subtitle: 'Convierte este bloque en un elemento de lista con viñetas',

@@ -47,6 +47,10 @@ type SlashInsertAction =
       kind: 'date';
       offsetDays: number;
       includeTime: boolean;
+    }
+  | {
+      kind: 'callout';
+      type: 'note';
     };
 
 export interface SlashInsertAutocompleteItem extends PageFrameAutocompleteItem {
@@ -127,6 +131,16 @@ const SLASH_INSERT_DEFINITIONS: readonly SlashInsertItemDefinition[] = [
     slashAction: {
       kind: 'block',
       nodeType: 'blockquote',
+    },
+  },
+  {
+    id: 'slash-callout',
+    labelKey: 'callout',
+    detail: '> [!note]',
+    keywords: ['callout', 'note', 'info', 'aside', '[!note]'],
+    slashAction: {
+      kind: 'callout',
+      type: 'note',
     },
   },
   {
@@ -367,7 +381,9 @@ export function searchSlashInsertAutocompleteItems(
   ).filter((item) => {
     if (
       !allowBlockActions &&
-      (item.slashAction.kind === 'block' || item.slashAction.kind === 'table')
+      (item.slashAction.kind === 'block' ||
+        item.slashAction.kind === 'table' ||
+        item.slashAction.kind === 'callout')
     ) {
       return false;
     }
@@ -493,6 +509,28 @@ export function buildSelectSlashInsertAutocompleteTransaction(
     );
 
     return setSelectionInsideTableCell(tr, blockPos, 0, 0);
+  }
+
+  if (slashAction.kind === 'callout') {
+    const blockquoteType = schema.nodes.blockquote;
+    if (!blockquoteType) {
+      return null;
+    }
+
+    const blockPos = state.selection.$from.before();
+    const tr = state.tr.delete(
+      activeRequest.replaceRange.from,
+      activeRequest.replaceRange.to,
+    );
+    const mappedBlockPos = tr.mapping.map(blockPos, -1);
+    const marker = `[!${slashAction.type}] `;
+
+    tr.setNodeMarkup(mappedBlockPos, blockquoteType);
+    tr.insertText(marker, mappedBlockPos + 1);
+    tr.setSelection(
+      TextSelection.create(tr.doc, mappedBlockPos + 1 + marker.length),
+    );
+    return tr;
   }
 
   const nodeType = schema.nodes[slashAction.nodeType];

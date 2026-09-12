@@ -5,6 +5,7 @@ import type { CanvasViewport } from '../canvas-viewport';
 import type { DrawableCanvas, Vector2 } from '../drawable-canvas';
 import type { Messages } from '../i18n/messages';
 import type { PdfHarvestContext } from '../pdf-export/harvest';
+import type { DrawingContext } from '../rendering/painter';
 import { applyYFields, writeYMap, type YFieldMap } from '../y-fields';
 import type { SyncOrigin, YDocManager } from '../ydoc-manager';
 import { type ElementType, isBackgroundElement } from './element-type';
@@ -190,7 +191,7 @@ export abstract class DrawableElement {
   }
 
   /** Draw element content. Selection outline is drawn separately by `drawSelectionOverlay`. */
-  public draw(ctx: CanvasRenderingContext2D, deltaTime: number): void {
+  public draw(ctx: DrawingContext, deltaTime: number): void {
     if (this._hidden) {
       return;
     }
@@ -224,17 +225,14 @@ export abstract class DrawableElement {
     this.draw2D(ctx, deltaTime);
   }
 
-  // Exactly the condition `drawSelectionOverlay` early-returns on, so the renderer can skip
-  // touching the overlay canvas entirely.
+  // Exactly the condition `drawSelectionOverlay` early-returns on, so the renderer can skip the
+  // selection pass entirely.
   public get hasSelectionOverlay(): boolean {
     return !this._hidden && this.selectionT > 0;
   }
 
-  // On a separate always-on-top canvas so it stays visible above DOM-backed editing chrome.
-  public drawSelectionOverlay(
-    ctx: CanvasRenderingContext2D,
-    isEditing: boolean,
-  ): void {
+  // The foreground draws selection after all element content, above the DOM layers.
+  public drawSelectionOverlay(ctx: DrawingContext, isEditing: boolean): void {
     if (this._hidden || this.selectionT <= 0) {
       return;
     }
@@ -245,7 +243,7 @@ export abstract class DrawableElement {
   }
 
   private drawSelection(
-    ctx: CanvasRenderingContext2D,
+    ctx: DrawingContext,
     t: number,
     isEditing: boolean,
   ): void {
@@ -363,7 +361,7 @@ export abstract class DrawableElement {
   }
   public exitEditMode(): void {}
 
-  // Called once per frame from `DrawableCanvas.redraw()` after the 2D pass.
+  // Called once per frame from `DrawableCanvas.redraw()` after the render pass.
   public syncDOM(_viewport: CanvasViewport, _host: HTMLElement): void {}
 
   /** Detach any DOM this element created. Called on removal. Default: no-op. */
@@ -413,7 +411,7 @@ export abstract class DrawableElement {
     x: number,
     y: number,
     radius: number,
-    ctx: CanvasRenderingContext2D,
+    ctx: DrawingContext,
   ): boolean {
     const localX = (x - this._offset.x) / this._scale.x;
     const localY = (y - this._offset.y) / this._scale.y;
@@ -554,11 +552,8 @@ export abstract class DrawableElement {
     x: number,
     y: number,
     radius: number,
-    ctx: CanvasRenderingContext2D,
+    ctx: DrawingContext,
   ): boolean;
   protected abstract updateBoundingBox(): void;
-  protected abstract draw2D(
-    ctx: CanvasRenderingContext2D,
-    deltaTime: number,
-  ): void;
+  protected abstract draw2D(ctx: DrawingContext, deltaTime: number): void;
 }

@@ -12,6 +12,7 @@ import type {
 } from '../elements/drawable-element';
 import { ElementType } from '../elements/element-type';
 import type { MessageGetter } from '../i18n';
+import type { DrawingContext } from '../rendering/painter';
 import { CollisionHelper } from '../utils/collision-helper';
 import type { ITool, SvgIcon, ToolId, ToolOption } from './tool';
 
@@ -69,7 +70,7 @@ export class SelectTool implements ITool {
     return 'select';
   }
 
-  public drawCursor(ctx: CanvasRenderingContext2D, position: Vector2): void {
+  public drawCursor(ctx: DrawingContext, position: Vector2): void {
     const palette = getCanvasPalette();
     if (this.mode === SelectMode.Marquee) {
       const x = Math.min(this.startPoint.x, position.x);

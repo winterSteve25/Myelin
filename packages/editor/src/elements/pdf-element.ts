@@ -40,6 +40,7 @@ import {
 } from '../pdf-renderer';
 import { getPlatform } from '../platform';
 import { quantizeRasterZoom } from '../raster-zoom';
+import type { DrawingContext } from '../rendering/painter';
 import { DrawableElement, ResizeHandles } from './drawable-element';
 import { ElementType } from './element-type';
 import {
@@ -396,7 +397,7 @@ export class PdfElement extends DrawableElement {
     x: number,
     y: number,
     _radius: number,
-    _ctx: CanvasRenderingContext2D,
+    _ctx: DrawingContext,
   ): boolean {
     return (
       x >= -CHROME_SIDE_PADDING &&
@@ -408,7 +409,7 @@ export class PdfElement extends DrawableElement {
 
   protected updateBoundingBox(): void {}
 
-  protected draw2D(_ctx: CanvasRenderingContext2D, _deltaTime: number): void {}
+  protected draw2D(_ctx: DrawingContext, _deltaTime: number): void {}
 
   // Uses dedicated canvases, not the on-screen staging pool, so thumbnail rendering never evicts or
   // contends with live page renders.

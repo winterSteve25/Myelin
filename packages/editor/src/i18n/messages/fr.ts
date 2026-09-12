@@ -736,6 +736,10 @@ const fr: typeof en = {
         title: 'Citation',
         subtitle: 'Transformer ce bloc en citation',
       },
+      callout: {
+        title: 'Encadré',
+        subtitle: 'Insérer un encadré de note mis en évidence',
+      },
       bulletList: {
         title: 'Liste à puces',
         subtitle: 'Transformer ce bloc en élément de liste à puces',

@@ -117,8 +117,7 @@ function CanvasViewInner({
   const strings = useMessages();
   const thumbnailRootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const bgHostRef = useRef<HTMLDivElement>(null);
-  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+  const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
   const wheelRef = useRef<WheelPickerHandle>(null);
   const drawableCanvasRef = useRef<DrawableCanvas | null>(null);
   const domOverlayRef = useRef<HTMLDivElement>(null);
@@ -186,8 +185,7 @@ function CanvasViewInner({
     id,
     thumbnailRootRef,
     canvasRef,
-    bgHostRef,
-    overlayCanvasRef,
+    backgroundCanvasRef,
     domOverlayRef,
     wheelRef,
     drawableCanvasRef,
@@ -322,10 +320,6 @@ function CanvasViewInner({
     },
   );
   useEffect(() => {
-    if (!activeEditorView) {
-      return;
-    }
-
     const handleOpenRequest = (event: Event) => {
       const { detail } = event as CustomEvent<NoteLinkOpenRequestDetail>;
       void openPageFrameNoteLink(detail).catch((error) => {
@@ -336,17 +330,14 @@ function CanvasViewInner({
       });
     };
 
-    activeEditorView.dom.addEventListener(
-      NOTE_LINK_OPEN_REQUEST_EVENT,
-      handleOpenRequest,
-    );
+    document.addEventListener(NOTE_LINK_OPEN_REQUEST_EVENT, handleOpenRequest);
     return () => {
-      activeEditorView.dom.removeEventListener(
+      document.removeEventListener(
         NOTE_LINK_OPEN_REQUEST_EVENT,
         handleOpenRequest,
       );
     };
-  }, [activeEditorView]);
+  }, []);
   const pageFrameAutocomplete = usePageFrameAutocomplete({
     repository,
     view: activeEditorView,
@@ -572,13 +563,10 @@ function CanvasViewInner({
         className="absolute inset-0 overflow-clip bg-page"
         style={surfaceStyle}
       >
-        {/* Background layer: dot grid, as a repeating CSS background rather
-            than a canvas — panning it is a compositor translate that
-            rasterizes nothing. Position and size are written by CanvasRenderer,
-            which owns the overdraw the pan translate depends on. */}
-        <div
-          ref={bgHostRef}
+        <canvas
+          ref={backgroundCanvasRef}
           data-thumbnail-exclude="true"
+          className="pointer-events-none absolute inset-0 h-full w-full"
           style={{ zIndex: 0 }}
         />
 
@@ -602,21 +590,13 @@ function CanvasViewInner({
           style={{ zIndex: 5 }}
         />
 
-        {/* Foreground canvas: strokes, images, element content */}
+        {/* Foreground: elements, then selection and tool feedback. */}
         <canvas
           ref={canvasRef}
           className="absolute inset-0 block h-full w-full touch-none"
           onClick={inserts.onCanvasClick}
         />
       </div>
-
-      {/* Selection overlay canvas: outline + handles. Always above DOM chrome
-          so selection stays visible while editing. */}
-      <canvas
-        ref={overlayCanvasRef}
-        className="pointer-events-none absolute inset-0 block h-full w-full"
-        style={{ zIndex: 12 }}
-      />
 
       {/* Frame chrome controls (hamburger buttons). Sits above the foreground
           canvas so clicks reach the buttons first. Below UI chrome (toolbars,

@@ -23,6 +23,7 @@ import type { ResolveMediaSrc } from './page-frame/pm/embed/renderer';
 import type { ResolveNoteLink } from './page-frame/pm/markdown/note-links';
 import { PalmRejection } from './palm-rejection';
 import { PlacementController } from './placement-controller';
+import type { WebGLPainter } from './rendering/painter';
 import type { LivePeersSnapshot } from './sync/live/peers';
 import { EraserTool } from './tools/eraser-tool';
 import { HighlighterTool } from './tools/highlighter-tool';
@@ -196,7 +197,7 @@ export function moveElementOrderForSelection(
 }
 
 export class DrawableCanvas {
-  public readonly ctx: CanvasRenderingContext2D;
+  public readonly ctx: WebGLPainter;
   public readonly viewport: CanvasViewport;
   private readonly canvas: HTMLCanvasElement;
   private readonly renderer: CanvasRenderer;
@@ -260,7 +261,6 @@ export class DrawableCanvas {
   private _handlePointerMove!: (evt: PointerEvent) => void;
   private _handlePointerUp!: (evt: PointerEvent) => void;
   private _handleStylusTouch!: (evt: TouchEvent) => void;
-  private _handleResize!: () => void;
   private readonly _handleYElementsChange: YElementsDeepObserver = (
     events,
     transaction,
@@ -297,15 +297,10 @@ export class DrawableCanvas {
     resolveMedia?: ResolveMediaSrc,
     private readonly _localPeerId = '',
   ) {
-    const ctx = canvas.getContext('2d', { alpha: true });
-    if (!ctx) {
-      logger.error('Failed to get canvas context');
-    }
-
     this.canvas = canvas;
     this.canvas.style.zIndex = '10';
-    this.ctx = ctx!;
-    this.renderer = new CanvasRenderer(this.ctx, canvas);
+    this.renderer = new CanvasRenderer(canvas);
+    this.ctx = this.renderer.ctx;
     this.viewport = new CanvasViewport(canvas);
     this.viewport.setContentBoundsProvider(() => this.getContentBounds());
     this.viewport.setTouchSuppressedProvider(() => this._palm.suppressed);
@@ -631,16 +626,9 @@ export class DrawableCanvas {
     });
   }
 
-  // Not a canvas: a repeating CSS background makes panning a compositor translate.
-  public setBackgroundHost(host: HTMLElement): void {
-    this.renderer.setBackgroundHost(host);
+  public setBackgroundCanvas(canvas: HTMLCanvasElement): void {
+    this.renderer.setBackgroundCanvas(canvas);
   }
-
-  // Always on top, so selection stays visible above DOM-backed editing chrome.
-  public setOverlayCanvas(canvas: HTMLCanvasElement): void {
-    this.renderer.setOverlayCanvas(canvas);
-  }
-
   public setDomOverlayHost(host: HTMLElement): void {
     this._domOverlayHost = host;
   }
@@ -921,7 +909,6 @@ export class DrawableCanvas {
     window.removeEventListener('pointercancel', this._handlePointerUp);
     this.canvas.removeEventListener('touchstart', this._handleStylusTouch);
     this.canvas.removeEventListener('touchend', this._handleStylusTouch);
-    window.removeEventListener('resize', this._handleResize);
   }
 
   public redraw(deltaTime: number) {
@@ -1408,11 +1395,6 @@ export class DrawableCanvas {
       passive: false,
     });
     canvas.addEventListener('touchend', this._handleStylusTouch);
-
-    this._handleResize = () => {
-      this.renderer.refreshSize();
-    };
-    window.addEventListener('resize', this._handleResize);
   }
 
   // The factory receives a freshly generated uuid.
