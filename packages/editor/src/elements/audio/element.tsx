@@ -11,6 +11,7 @@ import { DrawableElement, ResizeHandles } from '../drawable-element';
 import { ElementType } from '../element-type';
 import { getFrameChromeControlsLayer } from '../frame/chrome';
 import { AudioPlayerView } from './player-view';
+import { discardAudioRecording } from './recording';
 import { segmentsToText, toSegments } from './segments';
 import { decodeAudio, drawWaveform } from './waveform';
 
@@ -35,7 +36,7 @@ export class AudioElement extends DrawableElement {
   private _segments: TranscriptSegment[] = [];
   private _creatorPeerId: string;
   private _localPeerId: string;
-  private _ownerNoteId: string = '';
+  private _recordingOwnerId: string = '';
   private _onRecordingSaved: (() => void | Promise<void>) | undefined;
   private _transcribingPeerId: string = '';
   private _livePeers: LivePeersSnapshot | null = null;
@@ -159,12 +160,16 @@ export class AudioElement extends DrawableElement {
     this.render();
   }
 
-  public setOwnerNoteId(noteId: string): void {
-    if (this._ownerNoteId === noteId) {
+  public setRecordingOwnerId(ownerId: string): void {
+    if (this._recordingOwnerId === ownerId) {
       return;
     }
-    this._ownerNoteId = noteId;
+    this._recordingOwnerId = ownerId;
     this.render();
+  }
+
+  public discardRecording(): void {
+    void discardAudioRecording(this.uuid);
   }
 
   public setOnRecordingSaved(
@@ -373,7 +378,7 @@ export class AudioElement extends DrawableElement {
         <I18nProvider>
           <AudioPlayerView
             elementId={this.uuid}
-            ownerNoteId={this._ownerNoteId}
+            recordingOwnerId={this._recordingOwnerId}
             onRecordingSaved={this._onRecordingSaved}
             audioBytes={this._audioData}
             duration={this._duration}

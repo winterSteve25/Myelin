@@ -14,7 +14,6 @@ import {
   Play as PlayIcon,
   Square as SquareIcon,
 } from 'lucide-react';
-import { trackEvent } from '@myelin/shared/analytics';
 import { Logger } from '@myelin/shared/logger';
 import { getCanvasPalette, withCanvasAlpha } from '../../canvas-theme';
 import { VirtualList } from '../../components/virtual-list';
@@ -25,14 +24,15 @@ import type { LivePeer, PeerMode } from '../../sync/live/peers';
 import { getDevicePixelRatio } from '../../utils';
 import {
   type AudioRecordingState,
+  type AudioRecordingStatus,
   attachAudioRecording,
-  type CompletedAudioRecording,
   getAudioRecordingElapsedSeconds,
   getAudioRecordingState,
+  getAudioRecordingStatus,
   startAudioRecording,
   stopAudioRecording,
 } from './recording';
-import { activeSegmentIndex, segmentsToText } from './segments';
+import { activeSegmentIndex } from './segments';
 import {
   canTranscribeHere,
   getTranscriptionSlotState,
@@ -187,7 +187,7 @@ function drawPlaybackWaveformCanvas(
 
 interface AudioPlayerViewProps {
   elementId: string;
-  ownerNoteId: string;
+  recordingOwnerId: string;
   audioBytes: Uint8Array | null;
   duration: number;
   mimeType: string;
@@ -248,7 +248,7 @@ export function getAudioPlayerInteractionState({
 
 export function AudioPlayerView({
   elementId,
-  ownerNoteId,
+  recordingOwnerId,
   audioBytes,
   duration,
   mimeType,
@@ -327,30 +327,20 @@ export function AudioPlayerView({
     );
   });
 
-  const onRecordingStopped = useEffectEvent(
-    (recording: CompletedAudioRecording) => {
-      transcriptionSessionRef.current = recording.transcription;
-      return finalizeRecording(recording);
+  const onRecordingStatusChange = useEffectEvent(
+    (status: AudioRecordingStatus) => {
+      setRecordingState(status.state);
+      setIsTranscribing(status.isTranscribing);
     },
   );
-  const onRecordingStateChange = useEffectEvent(
-    (state: AudioRecordingState) => {
-      setRecordingState(state);
-    },
-  );
-  const onRecordingClaimed = useEffectEvent(() => {
-    onTranscriptionClaimed();
-  });
-  const onRecordingClaimReleased = useEffectEvent(() => {
-    onTranscriptionClaimReleased();
+  const onRecordingNoSpeech = useEffectEvent(() => {
+    flashNotice(strings.noSpeechDetected);
   });
 
   useEffect(() => {
     return attachAudioRecording(elementId, {
-      onStateChange: onRecordingStateChange,
-      onStopped: onRecordingStopped,
-      onTranscriptionClaimed: onRecordingClaimed,
-      onTranscriptionClaimReleased: onRecordingClaimReleased,
+      onStatusChange: onRecordingStatusChange,
+      onNoSpeech: onRecordingNoSpeech,
     });
   }, [elementId]);
 
@@ -390,12 +380,12 @@ export function AudioPlayerView({
   }, [audioBytes]);
 
   const attemptAutoPickup = useEffectEvent(() => {
-    // transcriptionSessionRef is the synchronous "a job is already running here" signal — it stays
-    // accurate through onRecorded's flushSync re-render, where isTranscribingLocally hasn't committed.
     if (
       !shouldStartAutoPickup({
         eligible: shouldAutoTranscribe(claimInput),
-        sessionInFlight: transcriptionSessionRef.current !== null,
+        sessionInFlight:
+          getAudioRecordingStatus(elementId).isTranscribing ||
+          transcriptionSessionRef.current !== null,
         alreadyAttempted: autoPickupAttemptedRef.current,
       })
     ) {
@@ -502,13 +492,14 @@ export function AudioPlayerView({
     try {
       const started = await startAudioRecording(
         elementId,
-        ownerNoteId,
+        recordingOwnerId,
         localMode,
         {
-          onStateChange: onRecordingStateChange,
-          onStopped: onRecordingStopped,
-          onTranscriptionClaimed: onRecordingClaimed,
-          onTranscriptionClaimReleased: onRecordingClaimReleased,
+          onRecorded,
+          onRecordingSaved,
+          onTranscribed,
+          onTranscriptionClaimed,
+          onTranscriptionClaimReleased,
         },
       );
       if (!started && !disposedRef.current) {
@@ -527,77 +518,6 @@ export function AudioPlayerView({
     clearInterval(recordTickRef.current);
     setRecordingState('idle');
     void stopAudioRecording(elementId);
-  }
-
-  async function finalizeRecording(recording: CompletedAudioRecording) {
-    const {
-      chunks,
-      mimeType: recordedMimeType,
-      startedAt,
-      transcription,
-    } = recording;
-    const transcriptPromise =
-      transcription?.finish() ?? Promise.resolve<TranscriptSegment[]>([]);
-
-    if (chunks.length === 0) {
-      if (transcriptionSessionRef.current === transcription) {
-        transcriptionSessionRef.current = null;
-      }
-      if (transcription) {
-        onTranscriptionClaimReleased();
-      }
-      return;
-    }
-
-    const blob = new Blob(chunks, { type: recordedMimeType });
-    const arrayBuffer = await blob.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-
-    let dur = 0;
-    let recordedWaveform: Float32Array | null = null;
-    try {
-      const decoded = await decodeAudio(bytes);
-      dur = decoded.duration;
-      recordedWaveform = decoded.waveform;
-    } catch {
-      dur = (Date.now() - startedAt) / 1000;
-    }
-
-    // Publish right away — waveform and playback must not wait on whisper. transcriptionSessionRef is
-    // still set here, so the auto-pickup effect this render fires sees the live job and won't duplicate.
-    onRecorded(bytes, dur, recordedMimeType, recordedWaveform);
-    await onRecordingSaved?.();
-
-    if (!transcription) {
-      return;
-    }
-    if (!disposedRef.current) {
-      setIsTranscribing(true);
-    }
-    const transcribed = await transcriptPromise.catch(
-      (): TranscriptSegment[] => [],
-    );
-    if (transcriptionSessionRef.current === transcription) {
-      transcriptionSessionRef.current = null;
-    }
-    if (!disposedRef.current) {
-      setIsTranscribing(false);
-    }
-    trackEvent('transcription_completed', {
-      duration_seconds: Math.round(dur),
-      transcript_length: segmentsToText(transcribed).length,
-      had_speech: transcribed.length > 0,
-    });
-    if (transcribed.length > 0) {
-      onTranscribed(transcribed);
-    } else {
-      // The claim must not outlive the job: present-but-idle would read as
-      // "still transcribing" to remote peers forever.
-      onTranscriptionClaimReleased();
-      if (!disposedRef.current) {
-        flashNotice(strings.noSpeechDetected);
-      }
-    }
   }
 
   /** The player for the current blob, created on first use. `null` while no audio has arrived. */

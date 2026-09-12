@@ -13,8 +13,11 @@ import {
 } from '@myelin/editor/events';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { useKeybindings } from '@/hooks/useKeybindings';
+import {
+  prepareCanvasTabClose,
+  registerAudioRecordingShutdownTask,
+} from '@/lib/audio-recording-lifecycle';
 import { IS_PHONE_BUILD } from '@/lib/viewport-scale';
-import { prepareCanvasTabClose } from '@/pages/canvas/hooks/audio-session-lifecycle';
 import { createWindowStateWithTab, TabStateController } from './controller';
 import { listenForTabDrops } from './multi-window';
 import type { PaneId, Tab, WindowState } from './types';
@@ -37,11 +40,13 @@ const TabControllerContext = createContext<TabStateController | null>(null);
 const PaneIdContext = createContext<PaneId | null>(null);
 
 export function TabStateProvider({ children }: { children: ReactNode }) {
+  useEffect(() => registerAudioRecordingShutdownTask(), []);
+
   const beforeCloseTab = useCallback((tab: Tab) => {
     if (tab.target.type !== 'canvas') {
       return;
     }
-    return prepareCanvasTabClose(tab.target.id);
+    return prepareCanvasTabClose(tab.id);
   }, []);
 
   const controller = useMemo(() => {

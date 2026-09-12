@@ -296,7 +296,7 @@ export class DrawableCanvas {
     resolveNoteLink?: ResolveNoteLink,
     resolveMedia?: ResolveMediaSrc,
     private readonly _localPeerId = '',
-    private readonly _ownerNoteId = '',
+    private readonly _audioRecordingOwnerId = '',
     private readonly _onAudioRecordingSaved:
       | (() => void | Promise<void>)
       | undefined = undefined,
@@ -478,7 +478,7 @@ export class DrawableCanvas {
     }
     if (element instanceof AudioElement) {
       element.setLocalPeerId(this._localPeerId);
-      element.setOwnerNoteId(this._ownerNoteId);
+      element.setRecordingOwnerId(this._audioRecordingOwnerId);
       element.setOnRecordingSaved(this._onAudioRecordingSaved);
       element.setLivePeers(this._livePeers);
     }
@@ -624,6 +624,9 @@ export class DrawableCanvas {
     const removedUuids = new Set<string>();
     for (const element of this._store.all()) {
       if (element.yMap && !currentYMaps.has(element.yMap)) {
+        if (element instanceof AudioElement) {
+          element.discardRecording();
+        }
         element.disposeDOM();
         removedUuids.add(element.uuid);
       }
@@ -1472,6 +1475,9 @@ export class DrawableCanvas {
   }
 
   public removeElement(element: DrawableElement) {
+    if (element instanceof AudioElement) {
+      element.discardRecording();
+    }
     const yMap = element.yMap;
     if (yMap) {
       this._ydoc.removeElementMap(yMap);
@@ -1497,6 +1503,11 @@ export class DrawableCanvas {
     }
     if (selected.length === 0) {
       return;
+    }
+    for (const element of selected) {
+      if (element instanceof AudioElement) {
+        element.discardRecording();
+      }
     }
     this._ydoc.transact(() => {
       for (const e of selected) {

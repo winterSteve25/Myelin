@@ -192,6 +192,7 @@ describe('CanvasSessionController', () => {
       { current: null },
       { current: null },
       { current: [] },
+      'tab-1',
     );
 
     resolveNoteLinkRefByTitleMock.mockResolvedValue({
@@ -203,6 +204,7 @@ describe('CanvasSessionController', () => {
 
     expect(drawableCanvasCtor).toHaveBeenCalledTimes(1);
     const resolveNoteLink = drawableCanvasCtor.mock.calls[0]?.[3];
+    expect(drawableCanvasCtor.mock.calls[0]?.[6]).toBe('tab-1');
     expect(resolveNoteLink).toEqual(expect.any(Function));
 
     const resolved = await resolveNoteLink('Alpha Note');

@@ -56,6 +56,7 @@ import { IS_DEV } from '@/lib/env';
 import { openNote, openNoteLink } from '@/lib/note/navigation';
 import { useRepository, type VFSNodeId } from '@/lib/sync';
 import { usePaneId, useTabController } from '@/lib/tabs/context';
+import type { TabId } from '@/lib/tabs/types';
 import { useUserPref } from '@/lib/use-user-pref';
 import { IS_PHONE_BUILD } from '@/lib/viewport-scale';
 import { RenameReferencesDialog } from '@/pages/library/explorer/rename-references-dialog';
@@ -86,12 +87,14 @@ const COMPACT_WHEEL_RADIUS = 52;
 
 interface CanvasViewProps {
   id: VFSNodeId;
+  recordingOwnerId: TabId;
   initialPageFrameName?: string | null;
   initialPageFrameId?: string | null;
 }
 
 export function CanvasView({
   id,
+  recordingOwnerId,
   initialPageFrameName,
   initialPageFrameId,
 }: CanvasViewProps) {
@@ -99,6 +102,7 @@ export function CanvasView({
     <PenPresetsProvider>
       <CanvasViewInner
         id={id}
+        recordingOwnerId={recordingOwnerId}
         initialPageFrameName={initialPageFrameName}
         initialPageFrameId={initialPageFrameId}
       />
@@ -108,6 +112,7 @@ export function CanvasView({
 
 function CanvasViewInner({
   id,
+  recordingOwnerId,
   initialPageFrameName: initialPageFrameNameProp,
   initialPageFrameId: initialPageFrameIdProp,
 }: CanvasViewProps) {
@@ -184,6 +189,7 @@ function CanvasViewInner({
 
   const engine = useCanvasEngine({
     id,
+    recordingOwnerId,
     thumbnailRootRef,
     canvasRef,
     bgHostRef,

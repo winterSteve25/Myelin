@@ -22,6 +22,10 @@ import type { ITool } from '@myelin/editor/tools/tool';
 import { UserPrefs } from '@myelin/editor/user-prefs';
 import type { YDocManager } from '@myelin/editor/ydoc-manager';
 import { Logger } from '@myelin/shared/logger';
+import {
+  preserveCanvasSession,
+  takePreservedCanvasSession,
+} from '@/lib/audio-recording-lifecycle';
 import type { NoteBacklink, NoteSession, VFSNodeId } from '@/lib/sync';
 import {
   type ActiveRepository,
@@ -29,14 +33,11 @@ import {
   useRepository,
 } from '@/lib/sync';
 import { renamePageFrameReferences } from '@/lib/sync/repo/rename-page-frame-references';
+import type { TabId } from '@/lib/tabs/types';
 import type {
   RenameReferencesChoice,
   RenameReferencesPrompt,
 } from '@/pages/library/explorer/use-explorer-item';
-import {
-  preserveCanvasSession,
-  takePreservedCanvasSession,
-} from './audio-session-lifecycle';
 
 type PageFrameRenameListener = (
   ownerNoteId: VFSNodeId,
@@ -102,6 +103,7 @@ export class CanvasSessionController {
     private readonly domOverlayRef: RefObject<HTMLDivElement | null>,
     private readonly drawableCanvasRef: RefObject<DrawableCanvas | null>,
     private readonly canvasToolsRef: RefObject<ITool[]>,
+    private readonly recordingOwnerId: TabId = '',
   ) {}
 
   subscribe = (listener: () => void): (() => void) => {
@@ -138,7 +140,9 @@ export class CanvasSessionController {
       return;
     }
 
-    let session: NoteSession | null = takePreservedCanvasSession(noteId);
+    let session: NoteSession | null = takePreservedCanvasSession(
+      this.recordingOwnerId,
+    );
     let drawableCanvas: DrawableCanvas | null = null;
 
     try {
@@ -168,7 +172,7 @@ export class CanvasSessionController {
           resolveNoteLinkRefByTitle(this.repository, title, frameNameCache),
         createMediaPathResolver(this.repository),
         session.localPeerId,
-        noteId,
+        this.recordingOwnerId,
         async () => {
           await session!.save();
         },
@@ -257,8 +261,8 @@ export class CanvasSessionController {
       activeSession.unsubscribePeers();
       activeSession.drawableCanvas.destroy();
 
-      if (hasAudioRecordingsForOwner(activeSession.noteSession.id)) {
-        preserveCanvasSession(activeSession.noteSession);
+      if (hasAudioRecordingsForOwner(this.recordingOwnerId)) {
+        preserveCanvasSession(this.recordingOwnerId, activeSession.noteSession);
         return;
       }
 
@@ -372,6 +376,7 @@ export class CanvasSessionController {
 
 interface UseCanvasSessionControllerArgs {
   id: VFSNodeId | undefined;
+  recordingOwnerId: TabId;
   canvasRef: RefObject<HTMLCanvasElement | null>;
   bgHostRef: RefObject<HTMLDivElement | null>;
   overlayCanvasRef: RefObject<HTMLCanvasElement | null>;
@@ -382,6 +387,7 @@ interface UseCanvasSessionControllerArgs {
 
 export function useCanvasSessionController({
   id,
+  recordingOwnerId,
   canvasRef,
   bgHostRef,
   overlayCanvasRef,
@@ -404,6 +410,7 @@ export function useCanvasSessionController({
         domOverlayRef,
         drawableCanvasRef,
         canvasToolsRef,
+        recordingOwnerId,
       ),
     [
       bgHostRef,
@@ -411,6 +418,7 @@ export function useCanvasSessionController({
       domOverlayRef,
       drawableCanvasRef,
       overlayCanvasRef,
+      recordingOwnerId,
       repository,
     ],
   );
